@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Draw! AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d1a;color:#fff;font-family:'Nunito',sans-serif;min-height:100vh;overflow:hidden}
+
+.blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:0.15;pointer-events:none;z-index:0;animation:bf 10s ease-in-out infinite alternate}
+.b1{width:450px;height:450px;background:#a55eea;top:-120px;left:-120px;animation-duration:12s}
+.b2{width:380px;height:380px;background:#ff6b9d;bottom:-100px;right:-80px;animation-duration:9s}
+.b3{width:320px;height:320px;background:#54a0ff;top:40%;left:35%;animation-duration:15s}
+@keyframes bf{to{transform:translate(40px,30px) scale(1.15)}}
+
+.screen{position:fixed;inset:0;z-index:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;overflow-y:auto}
+.screen.active{display:flex}
+
+/* ── SETUP SCREEN ── */
+.setup-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:36px;width:min(480px,95vw);backdrop-filter:blur(12px)}
+.setup-title{font-family:'Fredoka One',cursive;font-size:2rem;color:#ffd32a;text-align:center;margin-bottom:6px}
+.setup-sub{text-align:center;opacity:0.55;font-size:0.9rem;margin-bottom:24px;line-height:1.5}
+.setup-step{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding:16px;background:rgba(255,255,255,0.04);border-radius:14px;border:1px solid rgba(255,255,255,0.08)}
+.step-num{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#54a0ff,#a55eea);display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:1rem;flex-shrink:0}
+.step-body{flex:1}
+.step-body a{color:#54a0ff;text-decoration:none}
+.step-body a:hover{text-decoration:underline}
+.api-input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);border-radius:10px;color:#fff;font-family:'Nunito',sans-serif;font-size:0.95rem;outline:none;transition:border-color 0.2s;margin-top:10px}
+.api-input:focus{border-color:#54a0ff}
+.api-input::placeholder{opacity:0.4}
+.api-input.error{border-color:#ff4757}
+.api-input.ok{border-color:#0be881}
+.api-status{font-size:0.8rem;margin-top:6px;min-height:1.2em}
+.api-status.err{color:#ff4757}
+.api-status.ok{color:#0be881}
+.setup-btn{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#0be881,#00d2d3);color:#0d0d1a;font-family:'Fredoka One',cursive;font-size:1.4rem;cursor:pointer;transition:transform 0.15s,opacity 0.2s;margin-top:10px}
+.setup-btn:hover{transform:scale(1.02)}
+.setup-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+
+/* ── HOME SCREEN ── */
+.logo{font-family:'Fredoka One',cursive;font-size:clamp(2.8rem,7vw,4.5rem);text-align:center;line-height:1.1;background:linear-gradient(135deg,#ff6b9d,#ff9f43,#ffd32a,#0be881,#54a0ff,#a55eea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 20px rgba(255,107,157,0.3))}
+.logo-sub{opacity:0.45;font-size:0.95rem;text-align:center;margin-top:-8px}
+.home-box{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:22px;padding:28px 32px;width:min(420px,95vw)}
+.home-box h3{font-family:'Fredoka One',cursive;font-size:1.1rem;color:#ffd32a;margin-bottom:14px;text-align:center}
+.diff-row{display:flex;gap:8px;margin-bottom:20px}
+.diff-btn{flex:1;padding:12px 6px;border:2px solid rgba(255,255,255,0.15);border-radius:12px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.6);font-family:'Nunito',sans-serif;font-weight:800;font-size:0.9rem;cursor:pointer;transition:all 0.2s}
+.diff-btn:hover{background:rgba(255,255,255,0.1)}
+.diff-btn.easy.sel{border-color:#0be881;background:rgba(11,232,129,0.15);color:#0be881}
+.diff-btn.medium.sel{border-color:#ffd32a;background:rgba(255,211,42,0.15);color:#ffd32a}
+.diff-btn.hard.sel{border-color:#ff6b9d;background:rgba(255,107,157,0.15);color:#ff6b9d}
+.stepper-row{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:22px}
+.stepper-row label{font-weight:800;opacity:0.6;font-size:0.9rem}
+.stp{display:flex;align-items:center;gap:12px}
+.stp-btn{width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.07);color:#fff;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.15s}
+.stp-btn:hover{background:rgba(84,160,255,0.3);border-color:#54a0ff}
+.stp-val{font-family:'Fredoka One',cursive;font-size:2rem;color:#ffd32a;min-width:40px;text-align:center}
+.start-btn{width:100%;padding:15px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b9d,#a55eea);color:#fff;font-family:'Fredoka One',cursive;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(255,107,157,0.35);transition:transform 0.15s,box-shadow 0.15s}
+.start-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(255,107,157,0.5)}
+
+/* ── GAME SCREEN ── */
+#gameScreen{flex-direction:row;padding:0;align-items:stretch;justify-content:flex-start;gap:0}
+
+.game-left{width:190px;flex-shrink:0;background:rgba(0,0,0,0.3);border-right:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;padding:12px;gap:10px;overflow-y:auto}
+.game-center{flex:1;display:flex;flex-direction:column;min-width:0;padding:8px;gap:6px}
+.game-right{width:180px;flex-shrink:0;background:rgba(0,0,0,0.3);border-left:1px solid rgba(255,255,255,0.07);display:flex;flex-direction:column;padding:12px;gap:8px;overflow-y:auto}
+
+/* word prompt */
+.word-card{background:linear-gradient(135deg,rgba(84,160,255,0.15),rgba(165,94,234,0.15));border:1px solid rgba(84,160,255,0.3);border-radius:14px;padding:12px;text-align:center}
+.wc-label{font-size:0.68rem;font-weight:800;letter-spacing:0.1em;opacity:0.5;margin-bottom:4px}
+.wc-word{font-family:'Fredoka One',cursive;font-size:1.6rem;color:#ffd32a;text-shadow:0 0 16px rgba(255,211,42,0.4);line-height:1.1}
+.wc-letters{font-size:0.72rem;color:#54a0ff;margin-top:3px;opacity:0.7}
+
+/* timer */
+.timer-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:10px;text-align:center}
+.timer-big{font-family:'Fredoka One',cursive;font-size:2.4rem;line-height:1;transition:color 0.4s}
+.timer-track{height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-top:6px}
+.timer-fill{height:100%;border-radius:4px;transition:width 0.9s linear,background 0.4s}
+
+/* score / round */
+.meta-card{background:rgba(255,255,255,0.04);border-radius:12px;padding:10px}
+.meta-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.meta-label{font-size:0.7rem;font-weight:800;opacity:0.45;letter-spacing:0.08em}
+.meta-val{font-family:'Fredoka One',cursive;font-size:1.2rem;color:#ffd32a}
+
+/* AI robot panel */
+.robot-card{background:rgba(255,255,255,0.04);border-radius:14px;padding:12px;text-align:center;flex:1}
+.robot-wrap{width:70px;height:70px;margin:0 auto}
+.robot-wrap svg{width:100%;height:100%}
+.robot-status{font-size:0.75rem;color:rgba(255,255,255,0.4);margin:6px 0 4px;min-height:1.4em}
+.robot-saying{font-family:'Fredoka One',cursive;font-size:1.05rem;color:#54a0ff;min-height:1.4em;transition:color 0.3s;word-break:break-word}
+.robot-saying.correct{color:#0be881}
+.think-dots{display:inline-flex;gap:4px;vertical-align:middle}
+.think-dot{width:5px;height:5px;border-radius:50%;background:#54a0ff;animation:td 1s ease-in-out infinite}
+.think-dot:nth-child(2){animation-delay:0.2s}
+.think-dot:nth-child(3){animation-delay:0.4s}
+@keyframes td{0%,80%,100%{transform:scale(0.6);opacity:0.3}40%{transform:scale(1);opacity:1}}
+
+/* canvas */
+#drawCanvas{display:block;background:#fff;border-radius:12px;cursor:crosshair;touch-action:none;flex:1;min-height:0;box-shadow:0 4px 24px rgba(0,0,0,0.4)}
+
+/* toolbar */
+.toolbar{display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap;background:rgba(0,0,0,0.2);border-radius:10px;padding:7px 10px}
+.t-btn{padding:6px 12px;border-radius:8px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);font-family:'Nunito',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.t-btn:hover{background:rgba(255,255,255,0.14)}
+.t-btn.active{border-color:#54a0ff;background:rgba(84,160,255,0.2);color:#54a0ff}
+.t-btn.danger{border-color:rgba(255,71,87,0.4);color:#ff4757}
+.t-btn.danger:hover{background:rgba(255,71,87,0.2)}
+.t-btn.skip{margin-left:auto;border-color:rgba(255,107,157,0.4);color:#ff6b9d}
+.t-btn.skip:hover{background:rgba(255,107,157,0.15)}
+.csw{width:24px;height:24px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform 0.15s,border-color 0.15s;flex-shrink:0}
+.csw:hover{transform:scale(1.2)}
+.csw.sel{border-color:#fff;transform:scale(1.25)}
+.sz-range{width:70px;accent-color:#54a0ff;cursor:pointer}
+.tsep{width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0}
+
+/* right panel - guess log */
+.log-label{font-family:'Fredoka One',cursive;font-size:0.78rem;color:rgba(255,255,255,0.35);letter-spacing:0.08em}
+.log-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex:1}
+.log-item{font-size:0.78rem;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border-left:3px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.55);animation:slideIn 0.25s ease;word-break:break-word}
+.log-item.win{background:rgba(11,232,129,0.12);border-color:#0be881;color:#0be881;font-weight:800}
+@keyframes slideIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+
+/* ── RESULT OVERLAY ── */
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px)}
+.overlay.show{display:flex}
+.res-card{background:linear-gradient(135deg,#12122a,#1e1238);border:1px solid rgba(255,255,255,0.14);border-radius:24px;padding:36px;text-align:center;max-width:380px;width:90%;animation:popIn 0.35s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes popIn{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.res-icon{font-size:3.5rem;margin-bottom:10px}
+.res-title{font-family:'Fredoka One',cursive;font-size:2rem;margin-bottom:6px}
+.res-title.correct{color:#0be881}
+.res-title.wrong{color:#ff6b9d}
+.res-word{opacity:0.55;font-size:0.9rem;margin-bottom:14px}
+.res-pts{font-family:'Fredoka One',cursive;font-size:3.5rem;color:#ffd32a;line-height:1}
+.res-pts-lbl{font-size:0.8rem;opacity:0.45;margin-bottom:22px}
+.res-btn{padding:14px 32px;border:none;border-radius:12px;background:linear-gradient(135deg,#54a0ff,#a55eea);color:#fff;font-family:'Fredoka One',cursive;font-size:1.3rem;cursor:pointer;transition:transform 0.15s}
+.res-btn:hover{transform:scale(1.04)}
+
+/* ── END SCREEN ── */
+#endScreen{overflow-y:auto}
+.end-trophy{font-size:5rem;animation:bob 1s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-10px)}}
+.end-title{font-family:'Fredoka One',cursive;font-size:clamp(2rem,5vw,3rem);background:linear-gradient(135deg,#ffd32a,#ff9f43,#ff6b9d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.end-score{font-family:'Fredoka One',cursive;font-size:4.5rem;color:#ffd32a;line-height:1}
+.end-lbl{opacity:0.4;font-size:0.85rem;margin-top:-4px}
+.results-table{width:min(480px,95vw);background:rgba(255,255,255,0.04);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.09)}
+.results-table table{width:100%;border-collapse:collapse}
+.results-table th{padding:10px 14px;font-family:'Fredoka One',cursive;font-size:0.85rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.08);text-align:left}
+.results-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:0.88rem}
+.results-table tr:last-child td{border:none}
+.tc{color:#0be881;font-weight:800}
+.tx{color:#ff6b9d}
+.play-again{padding:16px 44px;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b9d,#a55eea);color:#fff;font-family:'Fredoka One',cursive;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(255,107,157,0.35);transition:transform 0.15s}
+.play-again:hover{transform:scale(1.03)}
+
+/* confetti */
+.cp{position:fixed;top:-12px;pointer-events:none;z-index:200;border-radius:2px;animation:cf linear forwards}
+@keyframes cf{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+@media(max-width:640px){
+  #gameScreen{flex-direction:column}
+  .game-left,.game-right{width:100%;flex-direction:row;flex-wrap:wrap;gap:8px;border:none;border-bottom:1px solid rgba(255,255,255,0.07)}
+  .game-right{border-top:1px solid rgba(255,255,255,0.07);border-bottom:none;flex-direction:row;max-height:100px;overflow:hidden}
+  .word-card,.timer-card,.meta-card,.robot-card{flex:1;min-width:120px}
+  .robot-wrap{width:40px;height:40px}
+  .log-list{flex-direction:row;flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+
+<div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+
+<!-- ── SETUP SCREEN ── -->
+<div class="screen active" id="setupScreen">
+  <div class="setup-box">
+    <div class="setup-title">🎨 Quick Draw! AI</div>
+    <div class="setup-sub">Real AI guesses your drawings out loud — powered by <em>Claude Vision</em>!</div>
+
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <strong>Start the local server</strong><br>
+        <small>Open a terminal in this folder and run:</small>
+        <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px 14px;margin-top:8px;font-family:monospace;font-size:0.82rem;color:#0be881;line-height:1.8;word-break:break-all">
+          <span style="opacity:0.5"># Windows CMD:</span><br>
+          set ANTHROPIC_API_KEY=sk-ant-xxx &amp;&amp; node server.js<br>
+          <span style="opacity:0.5"># PowerShell:</span><br>
+          $env:ANTHROPIC_API_KEY="sk-ant-xxx"; node server.js<br>
+          <span style="opacity:0.5"># Mac/Linux:</span><br>
+          ANTHROPIC_API_KEY=sk-ant-xxx node server.js
+        </div>
+        <small style="margin-top:6px;display:block;opacity:0.55">Or create a <code>.env</code> file with <code>ANTHROPIC_API_KEY=sk-ant-xxx</code> and just run <code>node server.js</code></small>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <strong>Allow voice so the AI can speak</strong><br>
+        <small>Browsers need a click before enabling text-to-speech.</small>
+        <div class="api-status" id="apiStatus"></div>
+      </div>
+    </div>
+
+    <button class="setup-btn" id="setupBtn" onclick="setupAndGo()">Connect &amp; Start →</button>
+  </div>
+</div>
+
+<!-- ── HOME SCREEN ── -->
+<div class="screen" id="homeScreen">
+  <div class="logo">✏️ Quick Draw!</div>
+  <div class="logo-sub">The AI will guess whatever you draw — powered by Claude Vision</div>
+
+  <div class="home-box">
+    <h3>Game Settings</h3>
+    <div class="diff-row">
+      <button class="diff-btn easy sel" onclick="setDiff('easy',this)">Easy<br><small style="opacity:0.6;font-size:0.75rem">60 sec</small></button>
+      <button class="diff-btn medium" onclick="setDiff('medium',this)">Medium<br><small style="opacity:0.6;font-size:0.75rem">40 sec</small></button>
+      <button class="diff-btn hard" onclick="setDiff('hard',this)">Hard<br><small style="opacity:0.6;font-size:0.75rem">20 sec</small></button>
+    </div>
+    <div class="stepper-row">
+      <label>Rounds</label>
+      <div class="stp">
+        <button class="stp-btn" onclick="adjRounds(-1)">−</button>
+        <div class="stp-val" id="roundsDisplay">5</div>
+        <button class="stp-btn" onclick="adjRounds(1)">+</button>
+      </div>
+    </div>
+    <button class="start-btn" onclick="startGame()">🎮 Let's Draw!</button>
+  </div>
+</div>
+
+<!-- ── GAME SCREEN ── -->
+<div class="screen" id="gameScreen">
+
+  <!-- Left panel -->
+  <div class="game-left">
+    <div class="word-card">
+      <div class="wc-label">DRAW THIS</div>
+      <div class="wc-word" id="wordText">—</div>
+      <div class="wc-letters" id="wordLetters"></div>
+    </div>
+    <div class="timer-card">
+      <div class="timer-big" id="timerNum">60</div>
+      <div class="timer-track"><div class="timer-fill" id="timerFill" style="width:100%;background:#0be881"></div></div>
+    </div>
+    <div class="meta-card">
+      <div class="meta-row"><span class="meta-label">SCORE</span><span class="meta-val" id="scoreDisplay">0</span></div>
+      <div class="meta-row"><span class="meta-label">ROUND</span><span class="meta-val" id="roundDisplay">1/5</span></div>
+    </div>
+    <div class="robot-card">
+      <div class="robot-wrap">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="22" width="70" height="54" rx="10" fill="#12122a" stroke="#54a0ff" stroke-width="2.5"/>
+          <rect x="36" y="12" width="28" height="12" rx="4" fill="#54a0ff" opacity="0.6"/>
+          <rect x="47" y="5" width="6" height="9" rx="2" fill="#54a0ff" opacity="0.8"/>
+          <circle cx="34" cy="43" r="9" fill="#0d0d1a"/>
+          <circle cx="34" cy="43" r="6.5" fill="#54a0ff" id="eyeL"/>
+          <circle cx="66" cy="43" r="9" fill="#0d0d1a"/>
+          <circle cx="66" cy="43" r="6.5" fill="#54a0ff" id="eyeR"/>
+          <circle cx="34" cy="43" r="2.5" fill="#fff" id="pupL"/>
+          <circle cx="66" cy="43" r="2.5" fill="#fff" id="pupR"/>
+          <rect x="30" y="60" width="40" height="7" rx="3.5" fill="#0d0d1a" id="mouth"/>
+          <rect x="9" y="40" width="8" height="18" rx="3" fill="#12122a" stroke="#54a0ff" stroke-width="1.5"/>
+          <rect x="83" y="40" width="8" height="18" rx="3" fill="#12122a" stroke="#54a0ff" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="robot-status" id="robotStatus">Waiting...</div>
+      <div class="robot-saying" id="robotSaying">—</div>
+    </div>
+  </div>
+
+  <!-- Center panel -->
+  <div class="game-center">
+    <canvas id="drawCanvas"></canvas>
+    <div class="toolbar" id="toolbar">
+      <button class="t-btn active" id="penBtn" onclick="setTool('pen')">✏ Pen</button>
+      <button class="t-btn" id="eraserBtn" onclick="setTool('eraser')">🧹 Erase</button>
+      <button class="t-btn danger" onclick="clearCanvas()">🗑 Clear</button>
+      <div class="tsep"></div>
+      <input type="range" class="sz-range" id="szRange" min="2" max="28" value="6" title="Size">
+      <div class="tsep"></div>
+      <div class="csw sel" style="background:#111" data-c="#111" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#e74c3c" data-c="#e74c3c" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#e67e22" data-c="#e67e22" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#f1c40f" data-c="#f1c40f" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#2ecc71" data-c="#2ecc71" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#3498db" data-c="#3498db" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#9b59b6" data-c="#9b59b6" onclick="pickColor(this)"></div>
+      <div class="csw" style="background:#fff;box-shadow:0 0 0 2px #555 inset" data-c="#fff" onclick="pickColor(this)"></div>
+      <button class="t-btn skip" onclick="skipRound()">Skip ⏭</button>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="game-right">
+    <div class="log-label">AI GUESSES</div>
+    <div class="log-list" id="logList"></div>
+  </div>
+</div>
+
+<!-- ── RESULT OVERLAY ── -->
+<div class="overlay" id="resultOverlay">
+  <div class="res-card">
+    <div class="res-icon" id="resIcon">🎉</div>
+    <div class="res-title" id="resTitle">Correct!</div>
+    <div class="res-word" id="resWord"></div>
+    <div class="res-pts" id="resPts">+0</div>
+    <div class="res-pts-lbl">points</div>
+    <button class="res-btn" id="resBtn" onclick="advanceRound()">Next Round →</button>
+  </div>
+</div>
+
+<!-- ── END SCREEN ── -->
+<div class="screen" id="endScreen">
+  <div class="end-trophy" id="trophy">🏆</div>
+  <div class="end-title">Game Over!</div>
+  <div class="end-score" id="endScore">0</div>
+  <div class="end-lbl">total points</div>
+  <div class="results-table">
+    <table>
+      <thead><tr><th>#</th><th>Word</th><th>AI Said</th><th>Status</th><th>Pts</th></tr></thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+  </div>
+  <button class="play-again" onclick="goHome()">Play Again! 🎮</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  WORD LISTS  (diverse — Claude handles all)
+// ─────────────────────────────────────────────
+const WORDS = {
+  easy: [
+    'cat','dog','fish','bird','horse','rabbit','frog','snake','elephant','lion',
+    'sun','moon','star','cloud','rainbow','tree','flower','mountain','wave','fire',
+    'house','car','boat','bicycle','airplane','train','rocket','umbrella','book','key',
+    'pizza','cake','ice cream','apple','banana','strawberry','hamburger','donut','coffee','heart',
+    'guitar','camera','phone','clock','hat','shoe','glasses','crown','sword','diamond'
+  ],
+  medium: [
+    'butterfly','octopus','crocodile','penguin','kangaroo','giraffe','shark','owl','bat','crab',
+    'volcano','tornado','lighthouse','castle','windmill','bridge','pyramid','igloo','barn','tent',
+    'submarine','helicopter','skateboard','hot air balloon','scooter','anchor','compass','telescope','microscope','lantern',
+    'sushi','taco','pineapple','watermelon','mushroom','broccoli','avocado','pretzel','lollipop','cupcake',
+    'robot','ghost','dragon','mermaid','unicorn','wizard','alien','trophy','hourglass','treasure chest'
+  ],
+  hard: [
+    'platypus','chameleon','axolotl','narwhal','pangolin','tapir','quokka','aye-aye','capybara','okapi',
+    'trebuchet','catapult','periscope','sextant','abacus','kaleidoscope','zeppelin','boomerang','stilts','origami',
+    'labyrinth','hourglass','sundial','bonsai','hammock','monocle','quill','javelin','acrobat','parachute',
+    'theremin','didgeridoo','harpsichord','vuvuzela','sousaphone','kazoo','ukulele','bagpipe','xylophone','maracas',
+    'ouroboros','mandala','triskelion','Möbius strip','penrose triangle','yin yang','ankh','rune','sigil','totem'
+  ]
+};
+
+const DIFF_TIME = {easy:60, medium:40, hard:20};
+const DIFF_PTS  = {easy:100, medium:180, hard:300};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let diff = 'easy', totalRounds = 5, currentRound = 0;
+let currentWord = '', roundWords = [], roundResults = [];
+let totalScore = 0, timeLeft = 0, totalTime = 0;
+let timerInterval = null, aiInterval = null;
+let roundEnded = false, hasDrawn = false, isQuerying = false;
+let lastSpoken = '', drawingChanged = false;
+
+// drawing
+let tool = 'pen', penColor = '#111', penSize = 6;
+let isDrawing = false, lx = 0, ly = 0;
+
+// robot anim
+let rafId = null, thinking = false;
+
+// ─────────────────────────────────────────────
+//  SETUP — connect to local Claude proxy server
+// ─────────────────────────────────────────────
+async function setupAndGo() {
+  const statusEl = document.getElementById('apiStatus');
+  const btn = document.getElementById('setupBtn');
+
+  btn.disabled = true;
+  btn.textContent = 'Connecting…';
+  statusEl.textContent = '';
+  statusEl.className = 'api-status';
+
+  try {
+    const res = await fetch('http://localhost:3001/ping');
+    const data = await res.json();
+    if (!data.ok) throw new Error('Server responded but not ready.');
+    if (!data.hasKey) {
+      statusEl.className = 'api-status err';
+      statusEl.textContent = '✗ Server running but ANTHROPIC_API_KEY is missing. Stop the server, set the key, and restart.';
+      btn.disabled = false;
+      btn.textContent = 'Connect & Start →';
+      return;
+    }
+  } catch (e) {
+    statusEl.className = 'api-status err';
+    statusEl.style.whiteSpace = 'pre-wrap';
+    statusEl.textContent = '✗ Cannot reach server at localhost:3001.\nMake sure you ran: node server.js';
+    btn.disabled = false;
+    btn.textContent = 'Connect & Start →';
+    return;
+  }
+
+  // Unlock speech synthesis (needs user gesture)
+  try {
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  } catch (_) {}
+
+  statusEl.className = 'api-status ok';
+  statusEl.textContent = '✓ Connected to Claude!';
+
+  setTimeout(() => showScreen('homeScreen'), 600);
+  btn.disabled = false;
+  btn.textContent = 'Connect & Start →';
+}
+
+// ─────────────────────────────────────────────
+//  CLAUDE VISION (via local proxy server)
+// ─────────────────────────────────────────────
+async function askClaude() {
+  // Convert canvas to small JPEG base64
+  const tmp = document.createElement('canvas');
+  tmp.width = tmp.height = 224;
+  const tc = tmp.getContext('2d');
+  tc.fillStyle = '#fff';
+  tc.fillRect(0, 0, 224, 224);
+  tc.drawImage(drawCanvas, 0, 0, 224, 224);
+  const b64 = tmp.toDataURL('image/jpeg', 0.85).split(',')[1];
+
+  const body = {
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 20,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+        { type: 'text', text: 'This is a hand-drawn sketch or doodle on a white background. What single object or thing is drawn? Reply with ONLY the object name — 1 to 3 words, nothing else. No punctuation, no explanation.' }
+      ]
+    }]
+  };
+
+  const res = await fetch('http://localhost:3001/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.error?.message || `HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  return (data.content?.[0]?.text || '').trim().toLowerCase().replace(/[^a-z\s'-]/g, '');
+}
+
+function isMatch(guess, target) {
+  if (!guess) return false;
+  const g = guess.toLowerCase().trim();
+  const t = target.toLowerCase().trim();
+  if (g === t) return true;
+  if (g.includes(t)) return true;
+  if (t.includes(g) && g.length > 2) return true;
+  // Match individual significant words of multi-word targets
+  const tWords = t.split(' ').filter(w => w.length > 2);
+  const gWords = g.split(' ').filter(w => w.length > 2);
+  return tWords.length > 0 && tWords.every(w => g.includes(w)) ||
+         gWords.length > 0 && gWords.every(w => t.includes(w));
+}
+
+// ─────────────────────────────────────────────
+//  SPEECH
+// ─────────────────────────────────────────────
+function speak(text, interrupt = true) {
+  if (interrupt) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.05; u.pitch = 1.1; u.volume = 1;
+  speechSynthesis.speak(u);
+}
+
+// ─────────────────────────────────────────────
+//  CANVAS
+// ─────────────────────────────────────────────
+const drawCanvas = document.getElementById('drawCanvas');
+const drawCtx = drawCanvas.getContext('2d');
+
+function resizeCanvas() {
+  const c = document.getElementById('game-center') || drawCanvas.parentElement;
+  const tb = document.querySelector('.toolbar');
+  const W = c.clientWidth - 16;
+  const H = c.clientHeight - (tb ? tb.offsetHeight : 0) - 20;
+
+  const tmp = document.createElement('canvas');
+  tmp.width = drawCanvas.width; tmp.height = drawCanvas.height;
+  tmp.getContext('2d').drawImage(drawCanvas, 0, 0);
+
+  drawCanvas.width = Math.max(100, W);
+  drawCanvas.height = Math.max(100, H);
+  drawCtx.fillStyle = '#fff';
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  if (tmp.width && tmp.height) drawCtx.drawImage(tmp, 0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function getPos(e) {
+  const r = drawCanvas.getBoundingClientRect();
+  const s = e.touches ? e.touches[0] : e;
+  return {
+    x: (s.clientX - r.left) * (drawCanvas.width / r.width),
+    y: (s.clientY - r.top)  * (drawCanvas.height / r.height)
+  };
+}
+
+function startDraw(e) {
+  if (roundEnded) return; e.preventDefault();
+  isDrawing = true; hasDrawn = true; drawingChanged = true;
+  const p = getPos(e); lx = p.x; ly = p.y;
+  drawCtx.beginPath();
+  drawCtx.arc(p.x, p.y, (tool==='eraser'?penSize*2:penSize)/2, 0, Math.PI*2);
+  drawCtx.fillStyle = tool==='eraser' ? '#fff' : penColor;
+  drawCtx.fill();
+}
+function moveDraw(e) {
+  if (!isDrawing || roundEnded) return; e.preventDefault();
+  const p = getPos(e);
+  drawCtx.beginPath(); drawCtx.moveTo(lx, ly); drawCtx.lineTo(p.x, p.y);
+  drawCtx.strokeStyle = tool==='eraser' ? '#fff' : penColor;
+  drawCtx.lineWidth = tool==='eraser' ? penSize*2.5 : penSize;
+  drawCtx.lineCap = drawCtx.lineJoin = 'round';
+  drawCtx.stroke();
+  lx = p.x; ly = p.y;
+  drawingChanged = true;
+}
+function endDraw() { isDrawing = false; }
+
+drawCanvas.addEventListener('mousedown', startDraw);
+drawCanvas.addEventListener('mousemove', moveDraw);
+drawCanvas.addEventListener('mouseup', endDraw);
+drawCanvas.addEventListener('mouseleave', endDraw);
+drawCanvas.addEventListener('touchstart', startDraw, {passive:false});
+drawCanvas.addEventListener('touchmove', moveDraw, {passive:false});
+drawCanvas.addEventListener('touchend', endDraw);
+
+function setTool(t) {
+  tool = t;
+  document.getElementById('penBtn').classList.toggle('active', t==='pen');
+  document.getElementById('eraserBtn').classList.toggle('active', t==='eraser');
+}
+function pickColor(el) {
+  if (tool==='eraser') setTool('pen');
+  penColor = el.dataset.c;
+  document.querySelectorAll('.csw').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+}
+document.getElementById('szRange').addEventListener('input', e => { penSize = +e.target.value; });
+
+function clearCanvas() {
+  drawCtx.fillStyle = '#fff';
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+  hasDrawn = false; drawingChanged = false; lastSpoken = '';
+  document.getElementById('robotSaying').textContent = '—';
+  document.getElementById('robotStatus').textContent = 'Draw something!';
+  document.getElementById('logList').innerHTML = '';
+}
+
+// ─────────────────────────────────────────────
+//  ROBOT ANIMATION
+// ─────────────────────────────────────────────
+function animRobot() {
+  const t = Date.now() / 1000;
+  const pL = document.getElementById('pupL');
+  const pR = document.getElementById('pupR');
+  const eL = document.getElementById('eyeL');
+  const eR = document.getElementById('eyeR');
+  const mo = document.getElementById('mouth');
+  if (pL) { pL.setAttribute('cx', 34 + Math.sin(t*1.4)*2.2); pL.setAttribute('cy', 43 + Math.cos(t*1.8)*1.4); }
+  if (pR) { pR.setAttribute('cx', 66 + Math.sin(t*1.4+1)*2.2); pR.setAttribute('cy', 43 + Math.cos(t*1.8+1)*1.4); }
+  if (thinking) {
+    const hue = 200 + Math.sin(t*2)*40;
+    const col = `hsl(${hue},100%,65%)`;
+    if (eL) eL.setAttribute('fill', col);
+    if (eR) eR.setAttribute('fill', col);
+    if (mo) { const w = 40+Math.sin(t*6)*7; mo.setAttribute('x', ((100-w)/2).toFixed(1)); mo.setAttribute('width', w.toFixed(1)); }
+  } else {
+    if (eL) eL.setAttribute('fill','#54a0ff');
+    if (eR) eR.setAttribute('fill','#54a0ff');
+    if (mo) { mo.setAttribute('x',30); mo.setAttribute('width',40); }
+  }
+  rafId = requestAnimationFrame(animRobot);
+}
+
+// ─────────────────────────────────────────────
+//  HOME SCREEN
+// ─────────────────────────────────────────────
+function setDiff(d, el) {
+  diff = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function adjRounds(delta) {
+  totalRounds = Math.max(2, Math.min(12, totalRounds + delta));
+  document.getElementById('roundsDisplay').textContent = totalRounds;
+}
+
+// ─────────────────────────────────────────────
+//  GAME FLOW
+// ─────────────────────────────────────────────
+function startGame() {
+  totalScore = 0; currentRound = 0; roundResults = [];
+  const pool = shuffle([...WORDS[diff]]);
+  roundWords = pool.slice(0, totalRounds);
+  showScreen('gameScreen');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    resizeCanvas();
+    if (!rafId) animRobot();
+    startRound();
+  }));
+}
+
+function startRound() {
+  roundEnded = false; hasDrawn = false; drawingChanged = false;
+  isQuerying = false; lastSpoken = ''; thinking = false;
+
+  currentWord = roundWords[currentRound];
+  document.getElementById('wordText').textContent = currentWord;
+  document.getElementById('wordLetters').textContent = `${currentWord.length} letters`;
+  document.getElementById('roundDisplay').textContent = `${currentRound+1}/${totalRounds}`;
+  document.getElementById('scoreDisplay').textContent = totalScore;
+  document.getElementById('logList').innerHTML = '';
+  document.getElementById('robotSaying').textContent = '—';
+  document.getElementById('robotSaying').className = 'robot-saying';
+  document.getElementById('robotStatus').textContent = 'Start drawing!';
+
+  // reset tools
+  tool = 'pen'; penColor = '#111'; penSize = 6;
+  document.getElementById('penBtn').classList.add('active');
+  document.getElementById('eraserBtn').classList.remove('active');
+  document.querySelectorAll('.csw').forEach(s => s.classList.remove('sel'));
+  document.querySelector('.csw[data-c="#111"]').classList.add('sel');
+  document.getElementById('szRange').value = 6;
+
+  drawCtx.fillStyle = '#fff';
+  drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+  totalTime = DIFF_TIME[diff];
+  timeLeft = totalTime;
+  updateTimer();
+
+  speak(`Round ${currentRound+1}. Draw a ${currentWord}. Go!`);
+
+  clearInterval(timerInterval);
+  clearInterval(aiInterval);
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); if (!roundEnded) timeOut(); }
+  }, 1000);
+
+  // AI asks Claude every 3 seconds, but only if drawing changed
+  aiInterval = setInterval(runAI, 3000);
+}
+
+async function runAI() {
+  if (roundEnded || !hasDrawn || isQuerying) return;
+  // Only call Claude if user drew something new since last call
+  if (!drawingChanged) return;
+
+  isQuerying = true;
+  drawingChanged = false;
+  thinking = true;
+  document.getElementById('robotStatus').textContent = 'Thinking…';
+  document.getElementById('robotSaying').innerHTML = '<span class="think-dots"><span class="think-dot"></span><span class="think-dot"></span><span class="think-dot"></span></span>';
+
+  let guess = null;
+  try {
+    guess = await askClaude();
+  } catch (e) {
+    console.warn('Claude error:', e.message);
+    document.getElementById('robotStatus').textContent = 'Hmm, let me look again...';
+    document.getElementById('robotSaying').textContent = '—';
+    isQuerying = false;
+    thinking = false;
+    return;
+  }
+
+  isQuerying = false;
+  thinking = false;
+
+  if (roundEnded || !guess) return;
+
+  document.getElementById('robotStatus').textContent = 'I think I see...';
+  document.getElementById('robotSaying').textContent = guess;
+
+  // Log it
+  addLog(guess, false);
+
+  // Speak only if different from last
+  if (guess !== lastSpoken) {
+    speak(guess);
+    lastSpoken = guess;
+  }
+
+  // Check correctness — only real match counts, no randomness
+  if (isMatch(guess, currentWord)) {
+    roundCorrect(guess);
+  }
+}
+
+function roundCorrect(guess) {
+  clearInterval(timerInterval);
+  clearInterval(aiInterval);
+  roundEnded = true;
+
+  const pts = Math.max(10, Math.round(DIFF_PTS[diff] * timeLeft / totalTime));
+  totalScore += pts;
+  roundResults.push({ word: currentWord, guess, status: 'correct', pts });
+
+  document.getElementById('robotSaying').textContent = guess;
+  document.getElementById('robotSaying').className = 'robot-saying correct';
+  document.getElementById('robotStatus').textContent = '✓ Got it!';
+  document.getElementById('scoreDisplay').textContent = totalScore;
+
+  addLog(guess, true);
+  speak(`Yes! That's a ${currentWord}!`);
+  confetti();
+  showResult(true, pts, guess);
+}
+
+function timeOut() {
+  clearInterval(timerInterval);
+  clearInterval(aiInterval);
+  roundEnded = true;
+  roundResults.push({ word: currentWord, guess: lastSpoken || '—', status: 'timeout', pts: 0 });
+  speak(`Time's up! The answer was ${currentWord}.`);
+  showResult(false, 0, null);
+}
+
+function skipRound() {
+  if (roundEnded) return;
+  clearInterval(timerInterval);
+  clearInterval(aiInterval);
+  roundEnded = true;
+  roundResults.push({ word: currentWord, guess: lastSpoken || '—', status: 'skip', pts: 0 });
+  speak(`Skipping. The word was ${currentWord}.`);
+  showResult(false, 0, null, true);
+}
+
+function updateTimer() {
+  const pct = timeLeft / totalTime;
+  document.getElementById('timerNum').textContent = timeLeft;
+  document.getElementById('timerFill').style.width = (pct*100) + '%';
+  const col = pct > 0.5 ? '#0be881' : pct > 0.25 ? '#ffd32a' : '#ff4757';
+  document.getElementById('timerFill').style.background = col;
+  document.getElementById('timerNum').style.color = col;
+}
+
+function addLog(guess, win) {
+  const list = document.getElementById('logList');
+  const item = document.createElement('div');
+  item.className = 'log-item' + (win ? ' win' : '');
+  item.textContent = (win ? '✓ ' : '') + guess;
+  list.insertBefore(item, list.firstChild);
+  while (list.children.length > 20) list.removeChild(list.lastChild);
+}
+
+function showResult(correct, pts, guess, skipped = false) {
+  const isLast = currentRound + 1 >= totalRounds;
+  document.getElementById('resIcon').textContent = correct ? '🎉' : skipped ? '⏭️' : '⏰';
+  const title = document.getElementById('resTitle');
+  title.textContent = correct ? 'Correct!' : skipped ? 'Skipped!' : "Time's Up!";
+  title.className = 'res-title ' + (correct ? 'correct' : 'wrong');
+  document.getElementById('resWord').textContent = `The word was: ${currentWord}`;
+  document.getElementById('resPts').textContent = '+' + pts;
+  document.getElementById('resBtn').textContent = isLast ? 'See Results 🏆' : 'Next Round →';
+  document.getElementById('resultOverlay').classList.add('show');
+}
+
+function advanceRound() {
+  document.getElementById('resultOverlay').classList.remove('show');
+  currentRound++;
+  if (currentRound >= totalRounds) showEnd();
+  else startRound();
+}
+
+function showEnd() {
+  clearInterval(timerInterval); clearInterval(aiInterval);
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+  const max = totalRounds * DIFF_PTS[diff];
+  const ratio = totalScore / max;
+  document.getElementById('trophy').textContent = ratio > 0.7 ? '🏆' : ratio > 0.4 ? '🥈' : '🥉';
+  document.getElementById('endScore').textContent = totalScore;
+
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+  roundResults.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    const sc = r.status === 'correct' ? 'tc' : 'tx';
+    const st = r.status === 'correct' ? '✓ Correct' : r.status === 'skip' ? 'Skipped' : 'Timeout';
+    tr.innerHTML = `<td>${i+1}</td><td>${r.word}</td><td style="opacity:0.6;font-size:0.8rem">${r.guess}</td><td class="${sc}">${st}</td><td>+${r.pts}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const msg = ratio > 0.7 ? 'Amazing!' : ratio > 0.4 ? 'Well done!' : 'Keep practicing!';
+  speak(`Game over! You scored ${totalScore} points. ${msg}`);
+  if (ratio > 0.35) confetti();
+  showScreen('endScreen');
+}
+
+function goHome() { showScreen('homeScreen'); }
+
+// ─────────────────────────────────────────────
+//  CONFETTI
+// ─────────────────────────────────────────────
+function confetti() {
+  const cols = ['#ff6b9d','#ff9f43','#ffd32a','#0be881','#00d2d3','#54a0ff','#a55eea'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    el.className = 'cp';
+    const sz = 6 + Math.random()*10;
+    el.style.cssText = `left:${Math.random()*100}vw;width:${sz}px;height:${sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.5}s`;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'gameScreen') setTimeout(resizeCanvas, 120);
+}
+
+function shuffle(a) {
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('gameScreen').classList.contains('active')) resizeCanvas();
+});
+</script>
+</body>
+</html>
