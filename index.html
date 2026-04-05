@@ -17,7 +17,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #1a1a2e;
+      background: #0b1f0b;
       font-family: 'Segoe UI', sans-serif;
       color: #eee;
     }
@@ -26,14 +26,14 @@
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
       letter-spacing: 0.1em;
-      color: #e94560;
+      color: #4ade80;
     }
 
     .status {
       font-size: 1.2rem;
       margin-bottom: 1.5rem;
       min-height: 1.8rem;
-      color: #a8dadc;
+      color: #86efac;
     }
 
     .board {
@@ -44,7 +44,7 @@
     }
 
     .cell {
-      background: #16213e;
+      background: #142814;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -57,21 +57,21 @@
     }
 
     .cell:hover:not(.taken) {
-      background: #0f3460;
+      background: #1e4d1e;
       transform: scale(1.05);
     }
 
     .cell.x {
-      color: #e94560;
+      color: #22c55e;
     }
 
     .cell.o {
-      color: #a8dadc;
+      color: #86efac;
     }
 
     .cell.win {
-      background: #0f3460;
-      box-shadow: 0 0 16px rgba(233, 69, 96, 0.5);
+      background: #1e4d1e;
+      box-shadow: 0 0 16px rgba(74, 222, 128, 0.5);
     }
 
     .controls {
@@ -86,7 +86,7 @@
       display: flex;
       gap: 2rem;
       font-size: 1rem;
-      color: #a8dadc;
+      color: #86efac;
     }
 
     .score-board span {
@@ -105,14 +105,14 @@
       font-weight: bold;
     }
 
-    .score-board .x-score .value { color: #e94560; }
-    .score-board .o-score .value { color: #a8dadc; }
+    .score-board .x-score .value { color: #22c55e; }
+    .score-board .o-score .value { color: #86efac; }
     .score-board .draw-score .value { color: #aaa; }
 
     .mode-toggle {
       display: flex;
       gap: 0.5rem;
-      background: #16213e;
+      background: #142814;
       border-radius: 8px;
       padding: 4px;
     }
@@ -129,7 +129,7 @@
     }
 
     .mode-btn.active {
-      background: #e94560;
+      background: #16a34a;
       color: #fff;
     }
 
@@ -137,7 +137,7 @@
       padding: 0.6rem 2rem;
       border: none;
       border-radius: 8px;
-      background: #e94560;
+      background: #16a34a;
       color: #fff;
       font-size: 1rem;
       cursor: pointer;
@@ -145,7 +145,7 @@
     }
 
     button.restart:hover {
-      background: #c73652;
+      background: #15803d;
       transform: scale(1.05);
     }
   </style>
