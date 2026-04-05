@@ -17,23 +17,23 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #1a1a2e;
+      background: #2d2000;
       font-family: 'Segoe UI', sans-serif;
-      color: #eee;
+      color: #fff8e1;
     }
 
     h1 {
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
       letter-spacing: 0.1em;
-      color: #e94560;
+      color: #f5c518;
     }
 
     .status {
       font-size: 1.2rem;
       margin-bottom: 1.5rem;
       min-height: 1.8rem;
-      color: #a8dadc;
+      color: #f0a500;
     }
 
     .board {
@@ -44,7 +44,7 @@
     }
 
     .cell {
-      background: #16213e;
+      background: #3d2b00;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -57,21 +57,21 @@
     }
 
     .cell:hover:not(.taken) {
-      background: #0f3460;
+      background: #5a3f00;
       transform: scale(1.05);
     }
 
     .cell.x {
-      color: #e94560;
+      color: #f5c518;
     }
 
     .cell.o {
-      color: #a8dadc;
+      color: #f0a500;
     }
 
     .cell.win {
-      background: #0f3460;
-      box-shadow: 0 0 16px rgba(233, 69, 96, 0.5);
+      background: #5a3f00;
+      box-shadow: 0 0 16px rgba(245, 197, 24, 0.6);
     }
 
     .controls {
@@ -86,7 +86,7 @@
       display: flex;
       gap: 2rem;
       font-size: 1rem;
-      color: #a8dadc;
+      color: #f0a500;
     }
 
     .score-board span {
@@ -105,14 +105,14 @@
       font-weight: bold;
     }
 
-    .score-board .x-score .value { color: #e94560; }
-    .score-board .o-score .value { color: #a8dadc; }
-    .score-board .draw-score .value { color: #aaa; }
+    .score-board .x-score .value { color: #f5c518; }
+    .score-board .o-score .value { color: #f0a500; }
+    .score-board .draw-score .value { color: #c8a415; }
 
     .mode-toggle {
       display: flex;
       gap: 0.5rem;
-      background: #16213e;
+      background: #3d2b00;
       border-radius: 8px;
       padding: 4px;
     }
@@ -123,29 +123,29 @@
       border-radius: 6px;
       cursor: pointer;
       background: transparent;
-      color: #aaa;
+      color: #c8a415;
       font-size: 0.9rem;
       transition: background 0.2s, color 0.2s;
     }
 
     .mode-btn.active {
-      background: #e94560;
-      color: #fff;
+      background: #f5c518;
+      color: #2d2000;
     }
 
     button.restart {
       padding: 0.6rem 2rem;
       border: none;
       border-radius: 8px;
-      background: #e94560;
-      color: #fff;
+      background: #f5c518;
+      color: #2d2000;
       font-size: 1rem;
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
     }
 
     button.restart:hover {
-      background: #c73652;
+      background: #d4a017;
       transform: scale(1.05);
     }
   </style>
