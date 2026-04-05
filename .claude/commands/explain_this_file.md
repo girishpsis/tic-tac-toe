@@ -1,1 +1,0 @@
-Explain thee purpose and contents of a specififed file in a simple and easy to understand language. It helps you grasp what a file does without needing to understand in-depth technical details. Its okay to have some level technical explanation.

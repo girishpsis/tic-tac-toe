@@ -1,0 +1,1 @@
+Generate design diagram for this workspace.
